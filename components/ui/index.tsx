@@ -1,6 +1,7 @@
 /**
- * CRICOS UI kit — themed primitives used across every screen. Centralising
- * these keeps the dark theme, large tap targets and rounded surfaces consistent.
+ * CRICOS UI kit — themed primitives shared across every screen. Centralising
+ * these keeps the dark theme, hairline borders, large tap targets and tight
+ * typography consistent. No emoji in the chrome — crisp line icons instead.
  */
 import React from 'react';
 import {
@@ -19,21 +20,34 @@ import {
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fontSize, fontWeight, radius, spacing } from '@/constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, tracking } from '@/constants/theme';
 
 /* --------------------------------- Text ---------------------------------- */
 
-type TextVariant = 'display' | 'h1' | 'h2' | 'title' | 'body' | 'label' | 'caption' | 'mono';
+type TextVariant = 'display' | 'h1' | 'h2' | 'title' | 'body' | 'label' | 'overline' | 'caption' | 'mono';
 
 const TEXT_VARIANTS: Record<TextVariant, TextStyle> = {
-  display: { fontSize: fontSize.display, fontWeight: fontWeight.black, color: colors.text },
-  h1: { fontSize: fontSize.xxl, fontWeight: fontWeight.black, color: colors.text },
-  h2: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.text },
-  title: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text },
+  display: { fontSize: fontSize.display, fontWeight: fontWeight.black, color: colors.text, letterSpacing: tracking.tight },
+  h1: { fontSize: fontSize.xxl, fontWeight: fontWeight.black, color: colors.text, letterSpacing: tracking.tight },
+  h2: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.text, letterSpacing: tracking.snug },
+  title: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text, letterSpacing: tracking.snug },
   body: { fontSize: fontSize.md, fontWeight: fontWeight.regular, color: colors.text },
   label: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textMuted },
+  overline: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textFaint,
+    letterSpacing: tracking.caps,
+    textTransform: 'uppercase',
+  },
   caption: { fontSize: fontSize.xs, fontWeight: fontWeight.medium, color: colors.textFaint },
-  mono: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.text, fontVariant: ['tabular-nums'] },
+  mono: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: tracking.snug,
+  },
 };
 
 interface AppTextProps extends TextProps {
@@ -78,7 +92,7 @@ export function Screen({ children, style, edges = ['top'], padded = false, ...re
 /* --------------------------------- Card ---------------------------------- */
 
 interface CardProps extends ViewProps {
-  variant?: 'surface' | 'surface2' | 'outline';
+  variant?: 'surface' | 'surface2' | 'outline' | 'plain';
   padded?: boolean;
 }
 
@@ -87,9 +101,10 @@ export function Card({ children, style, variant = 'surface', padded = true, ...r
     <View
       style={[
         styles.card,
-        variant === 'surface' && { backgroundColor: colors.surface },
-        variant === 'surface2' && { backgroundColor: colors.surface2 },
+        variant === 'surface' && styles.cardSurface,
+        variant === 'surface2' && { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
         variant === 'outline' && { backgroundColor: colors.transparent, borderWidth: 1, borderColor: colors.border },
+        variant === 'plain' && { backgroundColor: colors.surface },
         padded && { padding: spacing.lg },
         style,
       ]}
@@ -136,8 +151,9 @@ export function Button({
         : variant === 'danger'
           ? colors.wicket
           : colors.transparent;
-  const fg = variant === 'primary' || variant === 'danger' ? colors.black : colors.text;
-  const height = size === 'lg' ? 60 : size === 'sm' ? 40 : 52;
+  const fg = variant === 'primary' ? colors.black : variant === 'danger' ? colors.white : colors.text;
+  const bordered = variant === 'secondary' || variant === 'ghost';
+  const height = size === 'lg' ? 56 : size === 'sm' ? 38 : 50;
   const textVariant: TextVariant = size === 'lg' ? 'title' : 'body';
 
   return (
@@ -149,9 +165,10 @@ export function Button({
         {
           backgroundColor: bg,
           height,
-          opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
-          borderWidth: variant === 'ghost' ? 1 : 0,
-          borderColor: colors.border,
+          opacity: disabled ? 0.4 : pressed ? 0.82 : 1,
+          borderWidth: bordered ? 1 : 0,
+          borderColor: variant === 'ghost' ? colors.border : colors.borderStrong,
+          transform: [{ scale: pressed ? 0.985 : 1 }],
         },
         fullWidth && { alignSelf: 'stretch' },
         style,
@@ -178,11 +195,13 @@ interface ChipProps {
   selected?: boolean;
   onPress?: () => void;
   emoji?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   style?: StyleProp<ViewStyle>;
   accent?: string;
 }
 
-export function Chip({ label, selected, onPress, emoji, style, accent = colors.primary }: ChipProps) {
+export function Chip({ label, selected, onPress, emoji, icon, style, accent = colors.primary }: ChipProps) {
+  const fg = selected ? colors.black : colors.text;
   return (
     <Pressable
       onPress={onPress}
@@ -196,11 +215,8 @@ export function Chip({ label, selected, onPress, emoji, style, accent = colors.p
         style,
       ]}
     >
-      <AppText
-        variant="body"
-        weight={fontWeight.semibold}
-        color={selected ? colors.black : colors.text}
-      >
+      {icon ? <Ionicons name={icon} size={15} color={fg} style={{ marginRight: 6 }} /> : null}
+      <AppText variant="body" weight={fontWeight.semibold} color={fg}>
         {emoji ? `${emoji} ` : ''}
         {label}
       </AppText>
@@ -218,11 +234,7 @@ export function Field({ label, style, ...rest }: FieldProps) {
   return (
     <View style={{ gap: spacing.xs }}>
       {label ? <AppText variant="label">{label}</AppText> : null}
-      <TextInput
-        placeholderTextColor={colors.textFaint}
-        style={[styles.field, style]}
-        {...rest}
-      />
+      <TextInput placeholderTextColor={colors.textFaint} style={[styles.field, style]} {...rest} />
     </View>
   );
 }
@@ -249,12 +261,7 @@ export function ToggleRow({ label, help, value, onToggle }: ToggleRowProps) {
           </AppText>
         ) : null}
       </View>
-      <View
-        style={[
-          styles.switchTrack,
-          { backgroundColor: value ? colors.primary : colors.surface3 },
-        ]}
-      >
+      <View style={[styles.switchTrack, { backgroundColor: value ? colors.primary : colors.surface3 }]}>
         <View style={[styles.switchThumb, { alignSelf: value ? 'flex-end' : 'flex-start' }]} />
       </View>
     </Pressable>
@@ -273,10 +280,10 @@ interface StatBoxProps {
 export function StatBox({ label, value, accent = colors.text, style }: StatBoxProps) {
   return (
     <View style={[styles.statBox, style]}>
-      <AppText variant="h2" color={accent}>
+      <AppText variant="h2" color={accent} style={{ fontVariant: ['tabular-nums'] }}>
         {value}
       </AppText>
-      <AppText variant="caption" style={{ marginTop: 2 }}>
+      <AppText variant="overline" style={{ marginTop: 4 }}>
         {label}
       </AppText>
     </View>
@@ -291,11 +298,11 @@ interface EmptyStateProps {
   subtitle?: string;
 }
 
-export function EmptyState({ icon = 'list-outline', title, subtitle }: EmptyStateProps) {
+export function EmptyState({ icon = 'ellipse-outline', title, subtitle }: EmptyStateProps) {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Ionicons name={icon} size={36} color={colors.textFaint} />
+        <Ionicons name={icon} size={28} color={colors.textFaint} />
       </View>
       <AppText variant="title" center>
         {title}
@@ -314,9 +321,7 @@ export function EmptyState({ icon = 'list-outline', title, subtitle }: EmptyStat
 export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <View style={styles.sectionTitle}>
-      <AppText variant="label" style={{ letterSpacing: 0.5, textTransform: 'uppercase' }}>
-        {children}
-      </AppText>
+      <AppText variant="overline">{children}</AppText>
       {right}
     </View>
   );
@@ -333,6 +338,7 @@ export { Ionicons };
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   card: { borderRadius: radius.lg, overflow: 'hidden' },
+  cardSurface: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   button: {
     borderRadius: radius.md,
     alignItems: 'center',
@@ -341,6 +347,8 @@ const styles = StyleSheet.create({
   },
   buttonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
@@ -356,37 +364,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  switchTrack: {
-    width: 52,
-    height: 30,
-    borderRadius: radius.pill,
-    padding: 3,
-    justifyContent: 'center',
-  },
-  switchThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-  },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
+  switchTrack: { width: 50, height: 30, borderRadius: radius.pill, padding: 3, justifyContent: 'center' },
+  switchThumb: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.white },
   statBox: {
     flex: 1,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxxl, gap: spacing.sm },
   emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -395,7 +392,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   divider: { height: 1, backgroundColor: colors.border },
 });

@@ -1,6 +1,7 @@
 /**
- * Compact summary of a completed match: both innings lines, the result banner,
- * format badge and date. Tapping opens the full scorecard.
+ * Compact summary of a match — format/status header, both innings as team rows
+ * with monogram crests and tabular scores, and a gold result line. Tapping opens
+ * the scorecard.
  */
 import React from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
@@ -17,35 +18,36 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match, onPress, onLongPress }: MatchCardProps) {
-  const [first, second] = match.innings;
   const won = match.result?.winnerTeam ?? null;
+  const live = match.status === 'live';
 
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-      <Card style={{ marginBottom: spacing.md }}>
-        <View style={styles.topRow}>
-          <View style={styles.badge}>
-            <AppText variant="caption" color={colors.primary} weight={fontWeight.bold}>
-              {match.format.toUpperCase()}
+    <Pressable onPress={onPress} onLongPress={onLongPress} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+      <Card style={{ marginBottom: spacing.md }} padded={false}>
+        <View style={styles.inner}>
+          <View style={styles.topRow}>
+            <AppText variant="overline">
+              {match.format} · {match.totalOvers} ov
             </AppText>
+            {live ? (
+              <View style={styles.liveTag}>
+                <View style={styles.liveDot} />
+                <AppText variant="caption" color={colors.wicket} weight={fontWeight.bold} style={{ letterSpacing: 0.6 }}>
+                  LIVE
+                </AppText>
+              </View>
+            ) : (
+              <AppText variant="caption">{format(new Date(match.createdAt), 'dd MMM yyyy')}</AppText>
+            )}
           </View>
-          <AppText variant="caption">{format(new Date(match.createdAt), 'dd MMM yyyy')}</AppText>
-        </View>
 
-        <InningsLine
-          name={match.team1.name}
-          highlight={won === 1}
-          score={teamScore(match, 1)}
-        />
-        <InningsLine
-          name={match.team2.name}
-          highlight={won === 2}
-          score={teamScore(match, 2)}
-        />
+          <TeamRow name={match.team1.name} score={teamScore(match, 1)} highlight={won === 1} dim={won === 2} />
+          <TeamRow name={match.team2.name} score={teamScore(match, 2)} highlight={won === 2} dim={won === 1} />
+        </View>
 
         {match.result ? (
           <View style={styles.resultRow}>
-            <AppText variant="label" color={colors.primary} weight={fontWeight.semibold}>
+            <AppText variant="label" color={colors.gold} weight={fontWeight.bold}>
               {match.result.text}
             </AppText>
           </View>
@@ -56,38 +58,59 @@ export function MatchCard({ match, onPress, onLongPress }: MatchCardProps) {
 
   function teamScore(m: Match, team: 1 | 2): string {
     const inn = m.innings.find((i) => i.battingTeam === team);
-    if (!inn) return 'DNB';
+    if (!inn) return 'Yet to bat';
     return `${inn.totalRuns}/${inn.totalWickets} (${formatOvers(inn.legalBalls)})`;
   }
 }
 
-function InningsLine({ name, score, highlight }: { name: string; score: string; highlight: boolean }) {
+function TeamRow({ name, score, highlight, dim }: { name: string; score: string; highlight: boolean; dim: boolean }) {
   return (
-    <View style={styles.inningsRow}>
+    <View style={styles.teamRow}>
+      <Crest name={name} />
       <AppText
         variant="title"
         numberOfLines={1}
         style={{ flex: 1 }}
-        color={highlight ? colors.text : colors.textMuted}
+        color={dim ? colors.textMuted : colors.text}
         weight={highlight ? fontWeight.bold : fontWeight.semibold}
       >
         {name}
       </AppText>
-      <AppText variant="mono" color={highlight ? colors.primary : colors.textMuted}>
+      <AppText variant="mono" color={dim ? colors.textMuted : colors.text}>
         {score}
       </AppText>
     </View>
   );
 }
 
+export function Crest({ name, size = 30 }: { name: string; size?: number }) {
+  return (
+    <View style={[styles.crest, { width: size, height: size, borderRadius: size / 2 }]}>
+      <AppText variant="label" color={colors.text} weight={fontWeight.bold}>
+        {name.trim().charAt(0).toUpperCase() || '?'}
+      </AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  inner: { padding: spacing.lg },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
-  badge: {
-    backgroundColor: colors.primaryGlow,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
+  liveTag: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.wicket },
+  teamRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 6 },
+  crest: {
+    backgroundColor: colors.surface3,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  inningsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
-  resultRow: { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
+  resultRow: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bgElevated,
+  },
 });

@@ -165,8 +165,10 @@ function TopBar({ match, innings, onMenu }: { match: Match; innings: Innings; on
 function MatchCompleteView({ match, onScorecard }: { match: Match; onScorecard: () => void }) {
   return (
     <View style={styles.center}>
-      <AppText style={{ fontSize: 64 }}>🏆</AppText>
-      <AppText variant="h1" center style={{ marginTop: spacing.md }}>
+      <View style={styles.resultMark}>
+        <Ionicons name="trophy" size={32} color={colors.gold} />
+      </View>
+      <AppText variant="h1" center style={{ marginTop: spacing.lg }}>
         {match.result?.text ?? 'Match complete'}
       </AppText>
       <Button title="View Scorecard & Share" icon="share-social" size="lg" style={{ marginTop: spacing.xl }} onPress={onScorecard} />
@@ -182,8 +184,10 @@ function InningsBreakView({ match }: { match: Match }) {
   const target = first.totalRuns + 1;
   return (
     <View style={styles.center}>
-      <AppText style={{ fontSize: 56 }}>🍵</AppText>
-      <AppText variant="h1" center style={{ marginTop: spacing.sm }}>
+      <View style={styles.resultMark}>
+        <Ionicons name="pause" size={30} color={colors.text} />
+      </View>
+      <AppText variant="h1" center style={{ marginTop: spacing.lg }}>
         Innings Break
       </AppText>
       <Card style={{ marginTop: spacing.xl, alignSelf: 'stretch' }}>
@@ -299,7 +303,9 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
     return (
       <>
         <ScrollView contentContainerStyle={styles.setupContent}>
-          <AppText style={{ fontSize: 44, textAlign: 'center' }}>🏏</AppText>
+          <View style={[styles.resultMark, { alignSelf: 'center' }]}>
+            <Ionicons name="people" size={28} color={colors.primary} />
+          </View>
           <AppText variant="h1" center>
             {innings.battingTeamName} batting
           </AppText>
@@ -696,6 +702,16 @@ function pendingLabel(extra: string): string {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  resultMark: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
   topIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   setupContent: { padding: spacing.lg, gap: spacing.md },

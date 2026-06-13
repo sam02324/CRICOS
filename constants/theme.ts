@@ -1,35 +1,46 @@
 /**
- * CRICOS design tokens. Dark-first, high-contrast, large tap targets for
- * outdoor / sunlight use. Import `theme` everywhere instead of hard-coding values.
+ * CRICOS design tokens — a restrained, professional dark system.
+ * Near-black canvas, layered greys for elevation, hairline borders, soft-white
+ * text, a single green accent used sparingly, and gold reserved for wins/awards.
+ * Import `theme` (or the named groups) everywhere instead of hard-coding values.
  */
 import { TextStyle } from 'react-native';
 
 export const colors = {
-  // Surfaces
-  bg: '#0A0A0A',
-  surface: '#1A1A1A',
-  surface2: '#242424',
-  surface3: '#2E2E2E',
-  border: '#333333',
+  // Canvas & elevation (dark → light as you raise a surface)
+  bg: '#0A0B0D',
+  bgElevated: '#101216',
+  surface: '#141619',
+  surface2: '#1B1E22',
+  surface3: '#23272C',
 
-  // Brand
+  // Hairlines & dividers
+  border: '#262A30',
+  borderStrong: '#363B42',
+
+  // Brand accent — used sparingly for emphasis, never as decoration
   primary: '#22C55E',
   primaryDark: '#16A34A',
-  primaryGlow: 'rgba(34,197,94,0.18)',
+  primaryGlow: 'rgba(34,197,94,0.14)',
+  primaryMuted: 'rgba(34,197,94,0.10)',
+
+  // Gold — wins, awards, leaderboards
+  gold: '#EAB308',
+  goldMuted: 'rgba(234,179,8,0.12)',
 
   // Text
-  text: '#FFFFFF',
-  textMuted: '#A3A3A3',
-  textFaint: '#6B7280',
+  text: '#F4F5F6',
+  textMuted: '#9AA1A9',
+  textFaint: '#5F666E',
 
-  // Semantic
+  // Semantic / scoring chips
   four: '#3B82F6',
-  six: '#A855F7',
-  wicket: '#EF4444',
-  wicketDark: '#7F1D1D',
-  warning: '#F59E0B',
-  extra: '#F59E0B',
-  dot: '#6B7280',
+  six: '#8B5CF6',
+  wicket: '#F04438',
+  wicketDark: '#5A1A16',
+  warning: '#EAB308',
+  extra: '#E08C3E',
+  dot: '#5F666E',
   info: '#38BDF8',
 
   white: '#FFFFFF',
@@ -51,7 +62,7 @@ export const radius = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 24,
+  xl: 22,
   pill: 999,
 } as const;
 
@@ -62,8 +73,8 @@ export const fontSize = {
   lg: 18,
   xl: 22,
   xxl: 28,
-  xxxl: 40,
-  display: 56,
+  xxxl: 38,
+  display: 52,
 } as const;
 
 export const fontWeight = {
@@ -74,23 +85,32 @@ export const fontWeight = {
   black: '800',
 } as const satisfies Record<string, TextStyle['fontWeight']>;
 
+/** Letter-spacing scale — tighter on large type, looser on small caps labels. */
+export const tracking = {
+  tight: -0.6,
+  snug: -0.3,
+  normal: 0,
+  wide: 0.4,
+  caps: 1.1,
+} as const;
+
 export const shadow = {
   card: {
     shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   glow: {
     shadowColor: colors.primary,
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
+    elevation: 8,
   },
 } as const;
 
-export const theme = { colors, spacing, radius, fontSize, fontWeight, shadow };
+export const theme = { colors, spacing, radius, fontSize, fontWeight, tracking, shadow };
 
 export type Theme = typeof theme;

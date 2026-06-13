@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Share, ScrollView, View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Match } from '@/types/cricket';
-import { AppText, Button, Card, Screen } from '@/components/ui';
+import { AppText, Button, Card, Ionicons, Screen } from '@/components/ui';
 import { Header } from '@/components/Header';
 import { InningsTable } from '@/components/scorecard/InningsTable';
 import { ShareCard } from '@/components/scorecard/ShareCard';
@@ -99,8 +99,10 @@ export default function ScorecardScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {match.result ? (
           <Card variant="surface" style={styles.resultBanner}>
-            <AppText style={{ fontSize: 32 }}>🏆</AppText>
-            <AppText variant="h2" center weight={fontWeight.black} style={{ marginTop: spacing.xs }}>
+            <View style={styles.resultMark}>
+              <Ionicons name="trophy" size={26} color={colors.gold} />
+            </View>
+            <AppText variant="h2" center weight={fontWeight.black} style={{ marginTop: spacing.md }}>
               {match.result.text}
             </AppText>
             {match.venue ? (
@@ -120,11 +122,11 @@ export default function ScorecardScreen() {
         {mvp ? (
           <Card style={styles.mvpCard}>
             <View style={styles.mvpStar}>
-              <AppText style={{ fontSize: 24 }}>⭐</AppText>
+              <Ionicons name="star" size={22} color={colors.gold} />
             </View>
             <View style={{ flex: 1 }}>
-              <AppText variant="label" color={colors.warning} weight={fontWeight.bold}>
-                PLAYER OF THE MATCH
+              <AppText variant="overline" color={colors.gold}>
+                Player of the Match
               </AppText>
               <AppText variant="h2" weight={fontWeight.black}>
                 {mvp.name}
@@ -161,6 +163,14 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   content: { padding: spacing.lg, gap: spacing.lg },
   resultBanner: { alignItems: 'center' },
+  resultMark: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.goldMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mvpCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.warning },
   mvpStar: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   shareRow: { flexDirection: 'row', gap: spacing.md },

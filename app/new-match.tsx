@@ -222,7 +222,7 @@ export default function NewMatchScreen() {
                 <Chip
                   key={t.id}
                   label={t.name}
-                  emoji="⭐"
+                  icon="bookmark-outline"
                   onPress={() => {
                     setFormat(t.format);
                     setOvers(t.totalOvers);
@@ -243,7 +243,6 @@ export default function NewMatchScreen() {
               <Chip
                 key={p.format}
                 label={p.label}
-                emoji={p.emoji}
                 selected={format === p.format}
                 onPress={() => applyPreset(p.format)}
               />
@@ -346,7 +345,6 @@ export default function NewMatchScreen() {
               <Chip
                 key={b.value}
                 label={b.label}
-                emoji={b.emoji}
                 selected={ballType === b.value}
                 onPress={() => setBallType(b.value)}
               />
@@ -364,8 +362,8 @@ export default function NewMatchScreen() {
             </View>
             <AppText variant="label">Elected to</AppText>
             <View style={styles.wrap}>
-              <Chip label="🏏 Bat" selected={tossChoice === 'bat'} onPress={() => setTossChoice('bat')} />
-              <Chip label="⚾ Bowl" selected={tossChoice === 'bowl'} onPress={() => setTossChoice('bowl')} />
+              <Chip label="Bat" icon="baseball-outline" selected={tossChoice === 'bat'} onPress={() => setTossChoice('bat')} />
+              <Chip label="Bowl" icon="ellipse-outline" selected={tossChoice === 'bowl'} onPress={() => setTossChoice('bowl')} />
             </View>
             <AppText variant="caption" color={colors.primary}>
               {tossText}
