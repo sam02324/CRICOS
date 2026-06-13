@@ -331,7 +331,8 @@ export function applyDelivery(
   if (input.extraType === null || input.extraType === 'noBall') crossing = input.batRuns;
   else crossing = input.extraRuns; // wide / bye / legBye ran runs
   let swapped = false;
-  if (crossing % 2 === 1) {
+  // Only rotate when both ends are occupied (a lone "last man" never swaps).
+  if (crossing % 2 === 1 && innings.strikerId && innings.nonStrikerId) {
     const tmp = innings.strikerId;
     innings.strikerId = innings.nonStrikerId;
     innings.nonStrikerId = tmp;
@@ -358,10 +359,12 @@ export function applyDelivery(
       .reduce((s, b) => s + bowlerChargedRuns(b), 0);
     if (overRuns === 0) bowler.maidens += 1;
 
-    // end-of-over strike swap
-    const t = innings.strikerId;
-    innings.strikerId = innings.nonStrikerId;
-    innings.nonStrikerId = t;
+    // end-of-over strike swap (only when both ends are occupied)
+    if (innings.strikerId && innings.nonStrikerId) {
+      const t = innings.strikerId;
+      innings.strikerId = innings.nonStrikerId;
+      innings.nonStrikerId = t;
+    }
 
     innings.previousBowlerId = innings.currentBowlerId;
     innings.currentBowlerId = null;

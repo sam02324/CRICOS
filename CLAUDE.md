@@ -21,15 +21,18 @@ a space, which `create-expo-app` rejects).
 - ✅ First APK built via EAS and installable.
 - ✅ Code on GitHub: **github.com/sam02324/CRICOS** (branch `main`), build-on-push
   workflow at `.eas/workflows/build-on-push.yml` (needs repo linked in Expo dashboard).
-- 🔨 **Online pivot, Phase 1 ~90% done.** Supabase project **`rfdajfdtvphigfhavvaj`**
-  (org "sam02324's Org", Tokyo) is live; `schema.sql` applied (profiles + matches);
-  anon key + URL are in the **EAS `preview` env** and local `.env`; auth redirect
-  allow-list set (`cricos://auth/callback`). Auth code committed locally, not pushed.
-- ⏳ **Remaining:** owner creates a Google OAuth **Web** client (authorized redirect
-  `https://rfdajfdtvphigfhavvaj.supabase.co/auth/v1/callback`) → I enable Google in
-  Supabase via Management API → push to `main` → rebuild APK.
-- 🔑 Owner supplied a Supabase **management PAT** for setup — should be **revoked**
-  in Supabase → Account → Access Tokens once Phase 1 is done.
+- ✅ **Online Phase 1 wired.** Supabase project **`rfdajfdtvphigfhavvaj`** (Tokyo)
+  live; `schema.sql` applied; **Google provider enabled** (client id/secret set via
+  Management API); anon key + URL in EAS `preview` env + `.env`; redirect allow-list
+  `cricos://auth/callback`. OAuth completes at `app/auth/callback.tsx`; `authStore`
+  parses BOTH `?code=` and `#token` redirects (setSession / exchangeCodeForSession)
+  with a global deep-link listener.
+- 🐛 **Bug audit pass done** (before the latest build): fixed last-man-stands stall
+  (engine null-end swap guards + store `consolidateLastMan` + screen gating on
+  eligible batters), all-bowlers-disabled stall (relax over-cap), and lone-batter
+  swap-strike blocking scoring. All `tsc` + `expo export` clean.
+- ⏳ **Next:** owner installs the rebuilt APK, confirms Google login lands in-app,
+  then Phase 2 (cloud data + shared stats). Revoke the management PAT when done.
 
 ## Tech stack & versions
 - Expo **SDK 56** (RN 0.85.3, React 19.2.3), **Expo Router** (file-based), New Arch ON.

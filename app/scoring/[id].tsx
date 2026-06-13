@@ -238,8 +238,6 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
   const bowlingTeam = innings.battingTeam === 1 ? match.team2 : match.team1;
 
   const needOpeners = innings.batsmen.length === 0;
-  const needNewBatsman = !needOpeners && (innings.strikerId == null || innings.nonStrikerId == null);
-  const needNewBowler = !needOpeners && !needNewBatsman && innings.currentBowlerId == null;
 
   const striker = innings.batsmen.find((b) => b.playerId === innings.strikerId);
   const nonStriker = innings.batsmen.find((b) => b.playerId === innings.nonStrikerId);
@@ -264,22 +262,32 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
     [battingTeam.players, innings.batsmen, innings.strikerId, innings.nonStrikerId],
   );
 
-  const eligibleBowlers: PickerOption[] = useMemo(
-    () =>
-      bowlingTeam.players.map((p) => {
-        const rec = innings.bowlers.find((b) => b.playerId === p.id);
-        const oversBowled = rec ? Math.floor(rec.legalBalls / 6) : 0;
-        const isPrev = p.id === innings.previousBowlerId;
-        const atCap = oversBowled >= maxOversPerBowler;
-        return {
-          id: p.id,
-          name: p.name,
-          disabled: isPrev || atCap,
-          note: isPrev ? 'Bowled last over' : atCap ? 'Over limit reached' : rec ? `${formatOvers(rec.legalBalls)} ov • ${rec.wickets}/${rec.runs}` : undefined,
-        };
-      }),
-    [bowlingTeam.players, innings.bowlers, innings.previousBowlerId, maxOversPerBowler],
-  );
+  const aSlotEmpty = innings.strikerId == null || innings.nonStrikerId == null;
+  // Only prompt for a new batter when one is actually available. With "last man
+  // stands" and nobody left, the store keeps the lone survivor batting instead.
+  const needNewBatsman = !needOpeners && aSlotEmpty && eligibleNewBatsmen.length > 0;
+  const needNewBowler = !needOpeners && !needNewBatsman && innings.currentBowlerId == null;
+
+  const eligibleBowlers: PickerOption[] = useMemo(() => {
+    const list: PickerOption[] = bowlingTeam.players.map((p) => {
+      const rec = innings.bowlers.find((b) => b.playerId === p.id);
+      const oversBowled = rec ? Math.floor(rec.legalBalls / 6) : 0;
+      const isPrev = p.id === innings.previousBowlerId;
+      const atCap = oversBowled >= maxOversPerBowler;
+      return {
+        id: p.id,
+        name: p.name,
+        disabled: isPrev || atCap,
+        note: isPrev ? 'Bowled last over' : atCap ? 'Over limit reached' : rec ? `${formatOvers(rec.legalBalls)} ov • ${rec.wickets}/${rec.runs}` : undefined,
+      };
+    });
+    // Safety: never disable everyone. If the over-cap would leave no choice, relax
+    // it and keep only the no-consecutive-overs rule.
+    if (list.length > 0 && list.every((o) => o.disabled)) {
+      return list.map((o) => ({ ...o, disabled: o.id === innings.previousBowlerId }));
+    }
+    return list;
+  }, [bowlingTeam.players, innings.bowlers, innings.previousBowlerId, maxOversPerBowler]);
 
   const openerOptions = (exclude: string | null): PickerOption[] =>
     battingTeam.players.filter((p) => p.id !== exclude).map((p) => ({ id: p.id, name: p.name }));
@@ -568,7 +576,7 @@ function BatsmanRow({ b, striker, label }: { b?: { name: string; runs: number; b
     return (
       <View style={styles.batRow}>
         <AppText variant="title" color={colors.textFaint}>
-          Select batsman
+          —
         </AppText>
       </View>
     );

@@ -107,6 +107,31 @@ function clone(match: Match): Match {
   return JSON.parse(JSON.stringify(match)) as Match;
 }
 
+/**
+ * "Last man stands": when a batter is out and no eligible replacement remains,
+ * move the lone survivor to the striker's end so scoring continues with a single
+ * batter instead of stalling on an empty new-batsman prompt.
+ */
+function consolidateLastMan(match: Match) {
+  if (!match.rules.lastManStands) return;
+  const innings = currentInnings(match);
+  if (innings.isComplete) return;
+  if (innings.strikerId && innings.nonStrikerId) return; // both ends occupied
+  const battingTeam = innings.battingTeam === 1 ? match.team1 : match.team2;
+  const hasReplacement = battingTeam.players.some((p) => {
+    if (p.id === innings.strikerId || p.id === innings.nonStrikerId) return false;
+    const rec = innings.batsmen.find((b) => b.playerId === p.id);
+    if (!rec) return true; // not yet batted
+    if (rec.isOut) return false;
+    return rec.isRetired; // retired may return
+  });
+  if (hasReplacement) return; // normal new-batsman flow applies
+  if (innings.strikerId == null && innings.nonStrikerId != null) {
+    innings.strikerId = innings.nonStrikerId;
+    innings.nonStrikerId = null;
+  }
+}
+
 export const useMatchStore = create<MatchState>((set, get) => {
   /** Persist the live match offline; archive to history once completed. */
   function persist(match: Match) {
@@ -169,6 +194,7 @@ export const useMatchStore = create<MatchState>((set, get) => {
     const working = clone(match);
     const workingInnings = currentInnings(working);
     const flags = applyDelivery(workingInnings, input, working.rules);
+    consolidateLastMan(working);
 
     set({ undoStack: stack });
     afterDelivery(working, flags);
@@ -409,12 +435,16 @@ export const useMatchStore = create<MatchState>((set, get) => {
     swapStrike: () => {
       const match = get().match;
       if (!match) return;
+      const innings = currentInnings(match);
+      // No-op when an end is empty (lone last-man batter) — swapping would leave
+      // no striker and silently block scoring.
+      if (!innings.strikerId || !innings.nonStrikerId) return;
       const stack = snapshot();
       const working = clone(match);
-      const innings = currentInnings(working);
-      const t = innings.strikerId;
-      innings.strikerId = innings.nonStrikerId;
-      innings.nonStrikerId = t;
+      const w = currentInnings(working);
+      const t = w.strikerId;
+      w.strikerId = w.nonStrikerId;
+      w.nonStrikerId = t;
       persist(working);
       set({ match: working, undoStack: stack });
     },
