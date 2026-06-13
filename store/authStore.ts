@@ -1,17 +1,22 @@
 /**
  * Auth store. Owns the Supabase session, the signed-in user and their profile
- * (their UID). Google sign-in uses the Supabase OAuth + PKCE flow, opening a
- * secure in-app browser and exchanging the returned code for a session.
+ * (their UID). Google sign-in uses the Supabase OAuth + PKCE flow.
+ *
+ * The session is established with `completeOAuthFromUrl`, which follows
+ * Supabase's official Expo pattern: it parses the redirect URL with
+ * expo-auth-session's QueryParams (handles BOTH `?code=` query params and
+ * `#access_token=` fragments), then sets the session. A global Linking listener
+ * catches deep-link redirects even on a cold start.
  */
 import { create } from 'zustand';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { isSupabaseConfigured } from '@/lib/env';
 
-// Ensures the auth browser tab closes itself after redirecting back.
 WebBrowser.maybeCompleteAuthSession();
 
 export interface Profile {
@@ -33,6 +38,7 @@ interface AuthState {
 
   init: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  completeOAuthFromUrl: (url: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (patch: Partial<Pick<Profile, 'username' | 'display_name' | 'bio'>>) => Promise<void>;
@@ -48,6 +54,8 @@ async function loadProfile(userId: string): Promise<Profile | null> {
     .single();
   return (data as Profile) ?? null;
 }
+
+let linkingBound = false;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   configured: isSupabaseConfigured,
@@ -66,21 +74,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data } = await supabase.auth.getSession();
     const session = data.session ?? null;
     set({ session, user: session?.user ?? null });
-    if (session?.user) {
-      const profile = await loadProfile(session.user.id);
-      set({ profile });
-    }
+    if (session?.user) set({ profile: await loadProfile(session.user.id) });
     set({ initializing: false });
 
     supabase.auth.onAuthStateChange(async (_event, newSession) => {
       set({ session: newSession, user: newSession?.user ?? null });
-      if (newSession?.user) {
-        const profile = await loadProfile(newSession.user.id);
-        set({ profile });
-      } else {
-        set({ profile: null });
-      }
+      set({ profile: newSession?.user ? await loadProfile(newSession.user.id) : null });
     });
+
+    // Catch OAuth deep-link redirects globally (covers cold-start too).
+    if (!linkingBound) {
+      linkingBound = true;
+      const maybeHandle = (url: string | null) => {
+        if (url && (url.includes('code=') || url.includes('access_token'))) {
+          void get().completeOAuthFromUrl(url);
+        }
+      };
+      Linking.addEventListener('url', (e) => maybeHandle(e.url));
+      maybeHandle(await Linking.getInitialURL());
+    }
   },
 
   signInWithGoogle: async () => {
@@ -98,30 +110,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!data?.url) throw new Error('Could not start Google sign-in.');
 
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      if (result.type !== 'success' || !result.url) {
-        set({ signingIn: false });
-        return; // user cancelled
+      if (result.type === 'success' && result.url) {
+        await get().completeOAuthFromUrl(result.url);
       }
-
-      const qp = Linking.parse(result.url).queryParams ?? {};
-      const errorCode = qp.error_code ?? qp.error;
-      if (errorCode) throw new Error(String(errorCode));
-
-      const code = typeof qp.code === 'string' ? qp.code : undefined;
-      if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          // The app/auth/callback route may have already exchanged this code —
-          // only surface a real failure (no session at all).
-          const { data: s } = await supabase.auth.getSession();
-          if (!s.session) throw exchangeError;
-        }
-      }
-      // onAuthStateChange will populate session + profile.
+      // If the redirect deep-linked instead, the global listener / callback route handles it.
     } catch (e) {
       set({ error: e instanceof Error ? e.message : 'Sign-in failed.' });
     } finally {
       set({ signingIn: false });
+    }
+  },
+
+  completeOAuthFromUrl: async (url) => {
+    try {
+      const { params, errorCode } = QueryParams.getQueryParams(url);
+      if (errorCode) throw new Error(errorCode);
+      const { access_token, refresh_token, code } = params;
+
+      if (access_token && refresh_token) {
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (error) throw error;
+      } else if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          // May already be exchanged by a parallel handler — only fail if no session.
+          const { data: s } = await supabase.auth.getSession();
+          if (!s.session) throw error;
+        }
+      } else {
+        return false;
+      }
+
+      const { data } = await supabase.auth.getSession();
+      set({ session: data.session ?? null, user: data.session?.user ?? null, error: null });
+      if (data.session?.user) set({ profile: await loadProfile(data.session.user.id) });
+      return !!data.session;
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Sign-in failed.' });
+      return false;
     }
   },
 

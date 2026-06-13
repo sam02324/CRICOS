@@ -1,43 +1,68 @@
 /**
  * OAuth redirect target. Google/Supabase send the browser back to
- * `cricos://auth/callback?code=...`; this screen catches that deep link,
- * exchanges the code for a session (if it wasn't already), then sends the user
- * home. Tolerant of double-exchange (the in-app auth session may have handled
- * it first) — it just checks for a session and moves on.
+ * `cricos://auth/callback?code=...` (or with a token fragment). This screen
+ * hands the full URL to the auth store to establish the session, then routes
+ * home. If it fails, it shows the actual error so it can be diagnosed.
  */
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { colors } from '@/constants/theme';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
+import { AppText, Button } from '@/components/ui';
+import { useAuthStore } from '@/store/authStore';
+import { colors, spacing } from '@/constants/theme';
 
 export default function AuthCallback() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ code?: string; error?: string; error_description?: string }>();
+  const url = Linking.useURL();
+  const session = useAuthStore((s) => s.session);
+  const [error, setError] = useState<string | null>(null);
 
+  // Establish the session from the redirect URL.
   useEffect(() => {
+    if (!url) return;
     let active = true;
     (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) {
-          const code = typeof params.code === 'string' ? params.code : undefined;
-          if (code) await supabase.auth.exchangeCodeForSession(code);
-        }
-      } catch {
-        // ignore — onAuthStateChange / the gate will route appropriately
-      }
-      if (active) router.replace('/');
+      const ok = await useAuthStore.getState().completeOAuthFromUrl(url);
+      if (!active) return;
+      if (ok) router.replace('/');
+      else setError(useAuthStore.getState().error ?? 'Could not complete sign-in.');
     })();
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [url, router]);
+
+  // If the global listener established the session first, head home.
+  useEffect(() => {
+    if (session) router.replace('/');
+  }, [session, router]);
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <AppText style={{ fontSize: 40 }}>😕</AppText>
+        <AppText variant="title" center style={{ marginTop: spacing.md }}>
+          Sign-in didn&apos;t complete
+        </AppText>
+        <AppText variant="label" center color={colors.wicket} style={{ marginTop: spacing.sm }}>
+          {error}
+        </AppText>
+        <Button title="Back to login" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.replace('/login')} />
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
+    <View style={styles.center}>
       <ActivityIndicator color={colors.primary} size="large" />
+      <AppText variant="label" center style={{ marginTop: spacing.lg }}>
+        Signing you in…
+      </AppText>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: spacing.xl },
+});
