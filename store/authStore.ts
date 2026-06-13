@@ -110,7 +110,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const code = typeof qp.code === 'string' ? qp.code : undefined;
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) throw exchangeError;
+        if (exchangeError) {
+          // The app/auth/callback route may have already exchanged this code —
+          // only surface a real failure (no session at all).
+          const { data: s } = await supabase.auth.getSession();
+          if (!s.session) throw exchangeError;
+        }
       }
       // onAuthStateChange will populate session + profile.
     } catch (e) {

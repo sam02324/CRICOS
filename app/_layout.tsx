@@ -22,9 +22,11 @@ function useAuthGate() {
 
   useEffect(() => {
     if (initializing || !configured) return;
-    const onLogin = segments[0] === 'login';
-    if (!session && !onLogin) router.replace('/login');
-    else if (session && onLogin) router.replace('/');
+    // The OAuth callback ('auth/...') must be reachable while signed-out so it can
+    // finish the code exchange; only redirect to /login from real app routes.
+    const onAuthFlow = segments[0] === 'login' || segments[0] === 'auth';
+    if (!session && !onAuthFlow) router.replace('/login');
+    else if (session && segments[0] === 'login') router.replace('/');
   }, [initializing, configured, session, segments, router]);
 }
 
@@ -57,6 +59,7 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="login" options={{ animation: 'fade' }} />
+            <Stack.Screen name="auth/callback" options={{ animation: 'fade' }} />
             <Stack.Screen name="index" />
             <Stack.Screen name="new-match" />
             <Stack.Screen name="scoring/[id]" options={{ gestureEnabled: false }} />
