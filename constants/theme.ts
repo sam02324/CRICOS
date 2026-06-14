@@ -18,11 +18,13 @@ export const colors = {
   border: '#262A30',
   borderStrong: '#363B42',
 
-  // Brand accent — used sparingly for emphasis, never as decoration
-  primary: '#22C55E',
-  primaryDark: '#16A34A',
-  primaryGlow: 'rgba(34,197,94,0.14)',
-  primaryMuted: 'rgba(34,197,94,0.10)',
+  // Accent — monochrome high-contrast. White is the "primary" emphasis on the
+  // near-black canvas (no colour-as-decoration). Gold (below) is the only hue,
+  // reserved for wins/awards.
+  primary: '#FFFFFF',
+  primaryDark: '#C9CED4',
+  primaryGlow: 'rgba(255,255,255,0.12)',
+  primaryMuted: 'rgba(255,255,255,0.08)',
 
   // Gold — wins, awards, leaderboards
   gold: '#EAB308',
