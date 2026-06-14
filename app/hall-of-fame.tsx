@@ -7,7 +7,7 @@ import { ScrollView, View, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Match } from '@/types/cricket';
 import { HallOfFame, RecordHolder } from '@/types/clubs';
-import { AppText, Card, EmptyState, Screen } from '@/components/ui';
+import { AppText, Card, EmptyState, Ionicons, Screen } from '@/components/ui';
 import { Header } from '@/components/Header';
 import { useTournamentStore } from '@/store/tournamentStore';
 import { loadMatches } from '@/utils/storage';
@@ -17,20 +17,20 @@ import { colors, fontWeight, radius, spacing } from '@/constants/theme';
 interface Section {
   key: keyof HallOfFame;
   title: string;
-  emoji: string;
+  icon: keyof typeof Ionicons.glyphMap;
   unit: string;
 }
 
 const SECTIONS: Section[] = [
-  { key: 'mostRuns', title: 'Most Runs', emoji: '🏏', unit: 'runs' },
-  { key: 'mostWickets', title: 'Most Wickets', emoji: '🎯', unit: 'wkts' },
-  { key: 'highestScores', title: 'Highest Scores', emoji: '💥', unit: '' },
-  { key: 'bestBowling', title: 'Best Bowling', emoji: '🔥', unit: '' },
-  { key: 'mostMVPs', title: 'Most MVP Awards', emoji: '⭐', unit: 'MVP' },
-  { key: 'mostSixes', title: 'Most Sixes', emoji: '🚀', unit: 'sixes' },
-  { key: 'highestTeamTotals', title: 'Highest Team Totals', emoji: '📈', unit: '' },
-  { key: 'mostMatches', title: 'Most Matches', emoji: '🧢', unit: 'caps' },
-  { key: 'mostTitles', title: 'Most Titles', emoji: '🏆', unit: 'titles' },
+  { key: 'mostRuns', title: 'Most Runs', icon: 'trending-up-outline', unit: 'runs' },
+  { key: 'mostWickets', title: 'Most Wickets', icon: 'flame-outline', unit: 'wkts' },
+  { key: 'highestScores', title: 'Highest Scores', icon: 'flash-outline', unit: '' },
+  { key: 'bestBowling', title: 'Best Bowling', icon: 'disc-outline', unit: '' },
+  { key: 'mostMVPs', title: 'Most MVP Awards', icon: 'star-outline', unit: 'MVP' },
+  { key: 'mostSixes', title: 'Most Sixes', icon: 'rocket-outline', unit: 'sixes' },
+  { key: 'highestTeamTotals', title: 'Highest Team Totals', icon: 'bar-chart-outline', unit: '' },
+  { key: 'mostMatches', title: 'Most Matches', icon: 'shield-outline', unit: 'caps' },
+  { key: 'mostTitles', title: 'Most Titles', icon: 'trophy-outline', unit: 'titles' },
 ];
 
 export default function HallOfFameScreen() {
@@ -66,9 +66,14 @@ function RecordSection({ section, rows }: { section: Section; rows: RecordHolder
   if (rows.length === 0) return null;
   return (
     <Card style={{ gap: spacing.sm }}>
-      <AppText variant="title" weight={fontWeight.bold}>
-        {section.emoji} {section.title}
-      </AppText>
+      <View style={styles.sectionHead}>
+        <View style={styles.sectionIcon}>
+          <Ionicons name={section.icon} size={16} color={colors.gold} />
+        </View>
+        <AppText variant="title" weight={fontWeight.bold}>
+          {section.title}
+        </AppText>
+      </View>
       {rows.map((r, i) => (
         <View key={`${r.name}-${i}`} style={styles.row}>
           <View style={[styles.rank, i === 0 && { backgroundColor: colors.warning }]}>
@@ -98,6 +103,15 @@ function RecordSection({ section, rows }: { section: Section; rows: RecordHolder
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
+  sectionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: colors.goldMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   rank: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center' },
 });

@@ -5,9 +5,11 @@
 import {
   Innings,
   Match,
+  MatchFormat,
   PlayerCareerStats,
 } from '@/types/cricket';
 import { oversFloat } from '@/utils/cricket';
+import { buildMatchPerformances } from '@/utils/mvp';
 
 export function currentRunRate(innings: Innings): number {
   const overs = oversFloat(innings.legalBalls);
@@ -199,4 +201,68 @@ export function allPlayerNames(matches: Match[]): string[] {
     for (const p of match.team2.players) set.add(p.name);
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+
+/* --------------------------- player profile extras ----------------------- */
+
+const nameKey = (s: string) => s.trim().toLowerCase();
+
+/** A stable, human-friendly profile id derived from the player's name. */
+export function profileId(name: string): string {
+  const alpha = name.toLowerCase().replace(/[^a-z]/g, '');
+  const tail = (alpha.slice(-4) || 'plyr').padStart(4, 'x');
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return `${tail}${(h % 10000).toString().padStart(4, '0')}`;
+}
+
+export interface FormInnings {
+  runs: number;
+  balls: number;
+  notOut: boolean;
+}
+
+/** Most-recent-first batting innings for the recent-form strip. */
+export function recentForm(name: string, matches: Match[], limit = 8): FormInnings[] {
+  const key = nameKey(name);
+  const out: FormInnings[] = [];
+  for (const m of matches) {
+    for (const inn of m.innings) {
+      const bat = inn.batsmen.find((b) => nameKey(b.name) === key && b.hasBatted);
+      if (bat) out.push({ runs: bat.runs, balls: bat.balls, notOut: !bat.isOut });
+    }
+    if (out.length >= limit) break;
+  }
+  return out.slice(0, limit);
+}
+
+/** Career fielding totals (catches / stumpings / run-outs) for a player. */
+export function aggregateFielding(name: string, matches: Match[]) {
+  const key = nameKey(name);
+  let catches = 0;
+  let stumpings = 0;
+  let runouts = 0;
+  for (const m of matches) {
+    const perf = buildMatchPerformances(m).get(key);
+    if (perf) {
+      catches += perf.catches;
+      stumpings += perf.stumpings;
+      runouts += perf.runouts;
+    }
+  }
+  return { catches, stumpings, runouts };
+}
+
+export interface FormatStats {
+  format: MatchFormat;
+  stats: PlayerCareerStats;
+}
+
+/** Per-format career breakdown (only formats the player has appeared in). */
+export function statsByFormat(name: string, matches: Match[]): FormatStats[] {
+  const formats = Array.from(new Set(matches.map((m) => m.format)));
+  return formats
+    .map((f) => ({ format: f, stats: aggregatePlayerStats(name, matches.filter((m) => m.format === f)) }))
+    .filter((row) => row.stats.matches > 0)
+    .sort((a, b) => b.stats.runs - a.stats.runs);
 }

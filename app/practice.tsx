@@ -50,7 +50,7 @@ function PracticeSetup({ sessions }: { sessions: ReturnType<typeof usePracticeSt
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Card style={{ gap: spacing.lg }}>
         <AppText variant="title" center>
-          🎯 Set your challenge
+          Set your challenge
         </AppText>
         <NumberRow label="Target runs" value={targetRuns} step={5} min={5} onChange={setTargetRuns} />
         <NumberRow label="In balls" value={targetBalls} step={6} min={6} onChange={setTargetBalls} />
@@ -77,9 +77,12 @@ function PracticeSetup({ sessions }: { sessions: ReturnType<typeof usePracticeSt
           >
             <Card style={{ marginBottom: spacing.sm }}>
               <View style={styles.sessionTop}>
-                <AppText variant="title" weight={fontWeight.bold} color={s.achieved ? colors.primary : colors.text}>
-                  {s.runsScored}/{s.targetRuns} {s.achieved ? '✅' : ''}
-                </AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                  <AppText variant="title" weight={fontWeight.bold} color={s.achieved ? colors.primary : colors.text}>
+                    {s.runsScored}/{s.targetRuns}
+                  </AppText>
+                  {s.achieved ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} /> : null}
+                </View>
                 <AppText variant="caption">{format(new Date(s.createdAt), 'dd MMM, HH:mm')}</AppText>
               </View>
               <AppText variant="label" color={colors.textMuted}>
@@ -136,7 +139,7 @@ function ActiveSession() {
         {done ? (
           <View style={[styles.targetBadge, { backgroundColor: stats.runs >= targetRuns ? colors.primary : colors.wicket }]}>
             <AppText variant="title" color={colors.black} weight={fontWeight.bold}>
-              {stats.runs >= targetRuns ? 'Target smashed! 🎉' : 'Out of balls'}
+              {stats.runs >= targetRuns ? 'Target smashed' : 'Out of balls'}
             </AppText>
           </View>
         ) : (

@@ -86,9 +86,11 @@ export default function TournamentDetailScreen() {
       <Header title={tournament.name} subtitle={`${tournament.entries.length} teams • ${tournament.overs} ov`} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {tournament.status === 'completed' ? (
-          <Card style={[styles.champ, { borderColor: colors.warning }]}>
-            <AppText style={{ fontSize: 44 }}>🏆</AppText>
-            <AppText variant="h2" center weight={fontWeight.black} color={colors.warning}>
+          <Card style={[styles.champ, { borderColor: colors.gold }]}>
+            <View style={styles.champMark}>
+              <Ionicons name="trophy" size={30} color={colors.gold} />
+            </View>
+            <AppText variant="h2" center weight={fontWeight.black} color={colors.gold} style={{ marginTop: spacing.sm }}>
               {tournament.championName}
             </AppText>
             <AppText variant="label" center>
@@ -137,13 +139,15 @@ export default function TournamentDetailScreen() {
         {/* MVP leaderboard */}
         {mvps.length > 0 ? (
           <View>
-            <SectionTitle>MVP Leaderboard ⭐</SectionTitle>
+            <SectionTitle>MVP Leaderboard</SectionTitle>
             <Card style={{ gap: spacing.sm }}>
               {mvps.map((m, i) => (
                 <View key={m.name} style={styles.mvpRow}>
-                  <AppText variant="title" style={{ width: 28 }} color={i === 0 ? colors.warning : colors.textMuted}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
-                  </AppText>
+                  <View style={[styles.mvpRank, i === 0 && { backgroundColor: colors.gold }]}>
+                    <AppText variant="label" weight={fontWeight.black} color={i === 0 ? colors.black : colors.textMuted} style={{ fontVariant: ['tabular-nums'] }}>
+                      {i + 1}
+                    </AppText>
+                  </View>
                   <AppText variant="body" weight={fontWeight.semibold} style={{ flex: 1 }}>
                     {m.name}
                   </AppText>
@@ -230,6 +234,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.lg },
   champ: { alignItems: 'center', borderWidth: 1, gap: 2 },
+  champMark: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.goldMuted, alignItems: 'center', justifyContent: 'center' },
+  mvpRank: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
   tRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   tHead: { backgroundColor: colors.surface2 },
   tBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },

@@ -202,10 +202,12 @@ export default function NewMatchScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {tournament ? (
           <Card variant="surface" style={styles.tourBanner}>
-            <AppText style={{ fontSize: 26 }}>{tournament.emoji}</AppText>
+            <View style={styles.tourBannerIcon}>
+              <Ionicons name="trophy-outline" size={18} color={colors.gold} />
+            </View>
             <View style={{ flex: 1 }}>
-              <AppText variant="label" color={colors.primary} weight={fontWeight.bold}>
-                TOURNAMENT MATCH
+              <AppText variant="overline" color={colors.primary}>
+                Tournament match
               </AppText>
               <AppText variant="title" numberOfLines={1}>
                 {tournament.name}
@@ -297,14 +299,14 @@ export default function NewMatchScreen() {
               <View style={styles.wrap}>
                 <Chip label="None" selected={team1ClubId == null} onPress={() => applyClub(1, null)} />
                 {clubs.map((c) => (
-                  <Chip key={`c1-${c.id}`} label={c.name} emoji={c.emoji} selected={team1ClubId === c.id} onPress={() => applyClub(1, c.id)} />
+                  <Chip key={`c1-${c.id}`} label={c.name} selected={team1ClubId === c.id} onPress={() => applyClub(1, c.id)} />
                 ))}
               </View>
               <AppText variant="label">Team 2 club</AppText>
               <View style={styles.wrap}>
                 <Chip label="None" selected={team2ClubId == null} onPress={() => applyClub(2, null)} />
                 {clubs.map((c) => (
-                  <Chip key={`c2-${c.id}`} label={c.name} emoji={c.emoji} selected={team2ClubId === c.id} onPress={() => applyClub(2, c.id)} />
+                  <Chip key={`c2-${c.id}`} label={c.name} selected={team2ClubId === c.id} onPress={() => applyClub(2, c.id)} />
                 ))}
               </View>
               <AppText variant="caption">Picking a club fills the team name and squad from its roster.</AppText>
@@ -466,6 +468,7 @@ function PlayerNames({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.xl },
   tourBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.primary },
+  tourBannerIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.goldMuted, alignItems: 'center', justifyContent: 'center' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   editToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md },
   stepper: {

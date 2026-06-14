@@ -21,7 +21,6 @@ import { useClubStore } from '@/store/clubStore';
 import { useTournamentStore } from '@/store/tournamentStore';
 import { colors, fontWeight, radius, spacing } from '@/constants/theme';
 
-const EMOJIS = ['🏏', '🦁', '🐅', '🦅', '⚡', '🔥', '👑', '🚀', '🐉', '⭐'];
 const COLORS = ['#22C55E', '#3B82F6', '#A855F7', '#EF4444', '#F59E0B', '#EC4899', '#14B8A6', '#F97316'];
 
 export default function ClubsScreen() {
@@ -33,7 +32,6 @@ export default function ClubsScreen() {
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [ground, setGround] = useState('');
-  const [emoji, setEmoji] = useState(EMOJIS[0]);
   const [color, setColor] = useState(COLORS[0]);
   const [roster, setRoster] = useState('');
 
@@ -51,7 +49,7 @@ export default function ClubsScreen() {
     await addClub({
       name,
       shortName,
-      emoji,
+      emoji: '',
       color,
       homeGround: ground,
       foundedYear: null,
@@ -61,7 +59,6 @@ export default function ClubsScreen() {
     setShortName('');
     setGround('');
     setRoster('');
-    setEmoji(EMOJIS[0]);
     setColor(COLORS[0]);
     setCreating(false);
   };
@@ -90,15 +87,7 @@ export default function ClubsScreen() {
                 <Field label="Home ground" value={ground} onChangeText={setGround} placeholder="Colony Ground" />
               </View>
             </View>
-            <AppText variant="label">Crest</AppText>
-            <View style={styles.wrap}>
-              {EMOJIS.map((e) => (
-                <Pressable key={e} onPress={() => setEmoji(e)} style={[styles.emojiBtn, emoji === e && { borderColor: colors.primary, backgroundColor: colors.surface3 }]}>
-                  <AppText style={{ fontSize: 22 }}>{e}</AppText>
-                </Pressable>
-              ))}
-            </View>
-            <AppText variant="label">Colour</AppText>
+            <AppText variant="label">Crest colour</AppText>
             <View style={styles.wrap}>
               {COLORS.map((c) => (
                 <Pressable key={c} onPress={() => setColor(c)} style={[styles.colorBtn, { backgroundColor: c }, color === c && styles.colorBtnOn]} />
@@ -123,14 +112,16 @@ export default function ClubsScreen() {
           clubs.map((c) => (
             <Pressable key={c.id} onPress={() => router.push(`/club/${c.id}`)} style={({ pressed }) => [styles.clubRow, pressed && { opacity: 0.85 }]}>
               <View style={[styles.crest, { backgroundColor: c.color }]}>
-                <AppText style={{ fontSize: 24 }}>{c.emoji}</AppText>
+                <AppText variant="h2" weight={fontWeight.black} color={colors.black}>
+                  {(c.shortName || c.name).trim().charAt(0).toUpperCase()}
+                </AppText>
               </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="title" weight={fontWeight.bold}>
                   {c.name}
                 </AppText>
                 <AppText variant="caption">
-                  {c.shortName} • {c.members.length} players{titlesFor(c.id) > 0 ? ` • ${titlesFor(c.id)} 🏆` : ''}
+                  {c.shortName} · {c.members.length} players{titlesFor(c.id) > 0 ? ` · ${titlesFor(c.id)} ${titlesFor(c.id) === 1 ? 'title' : 'titles'}` : ''}
                 </AppText>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textFaint} />

@@ -85,7 +85,9 @@ export default function ClubDetailScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Card style={[styles.banner, { borderColor: club.color }]}>
           <View style={[styles.crest, { backgroundColor: club.color }]}>
-            <AppText style={{ fontSize: 34 }}>{club.emoji}</AppText>
+            <AppText variant="h1" weight={fontWeight.black} color={colors.black}>
+              {(club.shortName || club.name).trim().charAt(0).toUpperCase()}
+            </AppText>
           </View>
           <View style={styles.bannerStats}>
             <Mini label="Played" value={stats.played} />
@@ -102,20 +104,23 @@ export default function ClubDetailScreen() {
         </View>
 
         <Card style={{ gap: spacing.sm }}>
-          <Row label="🏏 Top scorer" value={stats.topScorerName ? `${stats.topScorerName} — ${stats.topScorerRuns}` : '—'} />
+          <Row label="Top scorer" value={stats.topScorerName ? `${stats.topScorerName} · ${stats.topScorerRuns}` : '—'} />
           <View style={styles.thin} />
-          <Row label="🎯 Top wicket-taker" value={stats.topWicketName ? `${stats.topWicketName} — ${stats.topWickets}` : '—'} />
+          <Row label="Top wicket-taker" value={stats.topWicketName ? `${stats.topWicketName} · ${stats.topWickets}` : '—'} />
         </Card>
 
         {titles.length > 0 ? (
           <View>
-            <SectionTitle>Honours 🏆</SectionTitle>
+            <SectionTitle>Honours</SectionTitle>
             {titles.map((t) => (
-              <Card key={t.id} style={{ marginBottom: spacing.sm }}>
-                <AppText variant="title" weight={fontWeight.bold} color={colors.warning}>
-                  {t.emoji} {t.name}
-                </AppText>
-                {t.mvpName ? <AppText variant="caption">Tournament MVP: {t.mvpName}</AppText> : null}
+              <Card key={t.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Ionicons name="trophy" size={20} color={colors.gold} />
+                <View style={{ flex: 1 }}>
+                  <AppText variant="title" weight={fontWeight.bold} color={colors.gold}>
+                    {t.name}
+                  </AppText>
+                  {t.mvpName ? <AppText variant="caption">Tournament MVP: {t.mvpName}</AppText> : null}
+                </View>
               </Card>
             ))}
           </View>

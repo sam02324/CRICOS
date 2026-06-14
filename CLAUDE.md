@@ -107,10 +107,16 @@ supabase/           schema.sql (run in Supabase SQL editor)
   **owner's** to do — guide them; don't try to harvest stored credentials.
 
 ## Roadmap
-1. ✅/🔨 Auth foundation (Supabase + Google + profiles/UID + login gate).
+1. ✅ Auth foundation (Supabase + Google + profiles/UID + login gate).
 2. ⏳ Cloud data layer (matches/clubs/tournaments/stats to cloud; shared profiles & leaderboards).
 3. ⏳ Feature expansion (Stumps-equivalent feature set).
-4. ⏳ Award-winning UI/UX overhaul + motion polish.
+4. UI/UX overhaul (professional dark, no chrome emoji, iOS feel):
+   - ✅ Wave 1: design system (theme + UI kit), Home, Login, MatchCard, typographic Celebration.
+   - 🔨 Wave 2 (in progress): rich player profile (Overview/Statistics tabs, format table,
+     recent form, Profile ID) DONE; app-wide emoji removed (clubs/tournaments/hall-of-fame/
+     new-match/practice now use icons + colored monogram crests) DONE. STILL TODO: Match Centre
+     tabs (Scoring/Scorecard/Stats/Super Stars), squad picker Playing/Bench, tournament banners,
+     bespoke scoring-screen layout, club Hall of Fame per season.
 
 ## Conventions
 - Match the surrounding code style; files have a top doc-comment explaining purpose.

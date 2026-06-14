@@ -22,7 +22,6 @@ import { useClubStore } from '@/store/clubStore';
 import { useTournamentStore } from '@/store/tournamentStore';
 import { colors, fontWeight, radius, spacing } from '@/constants/theme';
 
-const EMOJIS = ['🏆', '🥇', '🔥', '⚡', '👑', '🎽'];
 const FORMATS: { value: TournamentFormat; label: string }[] = [
   { value: 'league', label: 'League' },
   { value: 'knockout', label: 'Knockout' },
@@ -37,7 +36,6 @@ export default function TournamentsScreen() {
 
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
-  const [emoji, setEmoji] = useState(EMOJIS[0]);
   const [format, setFormat] = useState<TournamentFormat>('league');
   const [overs, setOvers] = useState(10);
   const [selectedClubs, setSelectedClubs] = useState<string[]>([]);
@@ -63,7 +61,7 @@ export default function TournamentsScreen() {
       entries.push({ clubId: null, name: n });
     }
     if (!name.trim() || entries.length < 2) return;
-    const t = await addTournament({ name, emoji, format, overs, entries });
+    const t = await addTournament({ name, emoji: '', format, overs, entries });
     setCreating(false);
     setName('');
     setSelectedClubs([]);
@@ -89,13 +87,6 @@ export default function TournamentsScreen() {
           <Card style={{ gap: spacing.md }}>
             <AppText variant="title">New Tournament</AppText>
             <Field label="Name" value={name} onChangeText={setName} placeholder="Colony Premier League" />
-            <View style={styles.wrap}>
-              {EMOJIS.map((e) => (
-                <Pressable key={e} onPress={() => setEmoji(e)} style={[styles.emojiBtn, emoji === e && { borderColor: colors.primary, backgroundColor: colors.surface3 }]}>
-                  <AppText style={{ fontSize: 20 }}>{e}</AppText>
-                </Pressable>
-              ))}
-            </View>
             <AppText variant="label">Format</AppText>
             <View style={styles.wrap}>
               {FORMATS.map((f) => (
@@ -114,7 +105,7 @@ export default function TournamentsScreen() {
             ) : (
               <View style={styles.wrap}>
                 {clubs.map((c) => (
-                  <Chip key={c.id} label={c.name} emoji={c.emoji} selected={selectedClubs.includes(c.id)} onPress={() => toggleClub(c.id)} />
+                  <Chip key={c.id} label={c.name} selected={selectedClubs.includes(c.id)} onPress={() => toggleClub(c.id)} />
                 ))}
               </View>
             )}
@@ -136,19 +127,21 @@ export default function TournamentsScreen() {
         ) : (
           tournaments.map((t) => (
             <Pressable key={t.id} onPress={() => router.push(`/tournament/${t.id}`)} style={({ pressed }) => [styles.tourRow, pressed && { opacity: 0.85 }]}>
-              <AppText style={{ fontSize: 30 }}>{t.emoji}</AppText>
+              <View style={styles.tourIcon}>
+                <Ionicons name="trophy-outline" size={20} color={colors.gold} />
+              </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="title" weight={fontWeight.bold} numberOfLines={1}>
                   {t.name}
                 </AppText>
                 <AppText variant="caption">
-                  {t.entries.length} teams • {t.overs} ov • {labelFormat(t.format)}
+                  {t.entries.length} teams · {t.overs} ov · {labelFormat(t.format)}
                 </AppText>
               </View>
               {t.status === 'completed' ? (
                 <View style={styles.champBadge}>
-                  <AppText variant="caption" color={colors.black} weight={fontWeight.bold}>
-                    🏆 {t.championName}
+                  <AppText variant="caption" color={colors.black} weight={fontWeight.bold} numberOfLines={1}>
+                    {t.championName}
                   </AppText>
                 </View>
               ) : (
@@ -175,8 +168,24 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  emojiBtn: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2, borderWidth: 2, borderColor: colors.border },
-  tourRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md },
-  champBadge: { backgroundColor: colors.warning, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm, maxWidth: 120 },
+  tourRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  tourIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.goldMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  champBadge: { backgroundColor: colors.gold, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm, maxWidth: 110 },
   liveBadge: { backgroundColor: colors.primaryGlow, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm },
 });
