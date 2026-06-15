@@ -1,6 +1,6 @@
 /**
  * Live match state. The store is the single writer for an in-progress match:
- * it applies deliveries through the engine, keeps a 6-deep undo stack of full
+ * it applies deliveries through the engine, keeps a 24-deep undo stack of full
  * match snapshots, drives the new-batsman / new-bowler / innings-break flow,
  * and persists offline after every change.
  */
@@ -31,9 +31,10 @@ import {
   uid,
 } from '@/utils/cricket';
 import { saveLiveMatch, upsertMatch } from '@/utils/storage';
+import { broadcastMatch, stopBroadcast } from '@/utils/realtime';
 import { FormatPreset } from '@/constants/formats';
 
-const UNDO_LIMIT = 6;
+const UNDO_LIMIT = 24;
 
 export interface StartMatchPayload {
   format: MatchFormat;
@@ -62,6 +63,8 @@ interface MatchState {
   matchComplete: boolean;
   celebration: Celebration | null;
   hydrated: boolean;
+  /** True when the last offline save failed (storage full, etc.). */
+  persistError: boolean;
 
   // lifecycle
   startMatch: (payload: StartMatchPayload) => string;
@@ -91,12 +94,18 @@ interface MatchState {
     extraType: ExtraType | null;
   }) => void;
   swapStrike: () => void;
+  /** Tag the most recent ball with a wagon-wheel shot direction (0–360°). */
+  setLastBallShotDirection: (deg: number) => void;
 
   // flow
   undo: () => void;
+  /** Undo multiple deliveries at once (used by the edit-over sheet). */
+  undoSteps: (steps: number) => void;
   startSecondInnings: () => void;
   forceEndInnings: () => void;
   clearCelebration: () => void;
+  /** Re-attempt the offline save after a persistence failure. */
+  retryPersist: () => void;
 }
 
 function currentInnings(match: Match): Innings {
@@ -138,8 +147,17 @@ export const useMatchStore = create<MatchState>((set, get) => {
     if (match.status === 'completed') {
       void upsertMatch(match);
       void saveLiveMatch(null);
+      // final broadcast so spectators see the result, then close the channel
+      broadcastMatch(match);
+      stopBroadcast(match.shareCode);
     } else {
-      void saveLiveMatch(match);
+      saveLiveMatch(match)
+        .then(() => {
+          if (get().persistError) set({ persistError: false });
+        })
+        .catch(() => set({ persistError: true }));
+      // live spectator sync (no-op when Supabase isn't configured)
+      broadcastMatch(match);
     }
   }
 
@@ -208,6 +226,7 @@ export const useMatchStore = create<MatchState>((set, get) => {
     matchComplete: false,
     celebration: null,
     hydrated: false,
+    persistError: false,
 
     startMatch: (payload) => {
       const id = uid('m_');
@@ -268,6 +287,8 @@ export const useMatchStore = create<MatchState>((set, get) => {
       }),
 
     abandonMatch: () => {
+      const m = get().match;
+      if (m?.shareCode) stopBroadcast(m.shareCode);
       void saveLiveMatch(null);
       set({
         match: null,
@@ -449,9 +470,40 @@ export const useMatchStore = create<MatchState>((set, get) => {
       set({ match: working, undoStack: stack });
     },
 
+    setLastBallShotDirection: (deg) => {
+      const match = get().match;
+      if (!match) return;
+      const working = clone(match);
+      const innings = currentInnings(working);
+      const last = innings.balls[innings.balls.length - 1];
+      if (!last) return;
+      last.shotDirection = deg;
+      persist(working);
+      set({ match: working });
+    },
+
     undo: () => {
       const stack = [...get().undoStack];
       const prev = stack.pop();
+      if (!prev) return;
+      persist(prev);
+      set({
+        match: prev,
+        undoStack: stack,
+        pendingExtra: null,
+        inningsBreak: false,
+        matchComplete: prev.status === 'completed',
+        celebration: null,
+      });
+    },
+
+    undoSteps: (steps) => {
+      if (steps <= 0) return;
+      const stack = [...get().undoStack];
+      let prev: Match | undefined;
+      for (let i = 0; i < steps && stack.length > 0; i++) {
+        prev = stack.pop();
+      }
       if (!prev) return;
       persist(prev);
       set({
@@ -495,6 +547,12 @@ export const useMatchStore = create<MatchState>((set, get) => {
     },
 
     clearCelebration: () => set({ celebration: null }),
+
+    retryPersist: () => {
+      const match = get().match;
+      if (!match) return;
+      persist(match);
+    },
   };
 });
 

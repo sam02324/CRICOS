@@ -75,6 +75,8 @@ export interface Ball {
   isLegal: boolean; // true when the delivery counts towards the over
   swappedStrike: boolean;
   commentary: string;
+  /** Optional wagon-wheel shot direction, 0–360° (0 = straight down the ground). */
+  shotDirection?: number | null;
 }
 
 export interface BatsmanInnings {
@@ -174,6 +176,8 @@ export interface Match {
   team1ClubId?: string | null;
   team2ClubId?: string | null;
   tournamentId?: string | null;
+  /** Optional AI-generated post-match report paragraph. */
+  report?: string;
 }
 
 /** A saved rule-set the user can re-apply in one tap. */

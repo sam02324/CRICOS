@@ -8,3 +8,11 @@ export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
 /** True once both Supabase keys are present — gates the online/login features. */
 export const isSupabaseConfigured = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
+
+/**
+ * Optional AI endpoint for post-match reports. Expected to accept
+ * `POST { prompt: string }` and return `{ text: string }` (or `{ report }`).
+ * When unset, report generation is skipped gracefully.
+ */
+export const AI_REPORT_URL = process.env.EXPO_PUBLIC_AI_REPORT_URL ?? '';
+export const isAiReportConfigured = AI_REPORT_URL.length > 0;

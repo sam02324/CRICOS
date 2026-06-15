@@ -6,6 +6,7 @@
  */
 import { Match } from '@/types/cricket';
 import { MVPResult, PlayerPerformance } from '@/types/clubs';
+import { resolveNameKey } from '@/utils/playerRegistry';
 
 function blank(name: string): PlayerPerformance {
   return {
@@ -56,7 +57,8 @@ export function buildMatchPerformances(match: Match): Map<string, PlayerPerforma
   for (const p of [...match.team1.players, ...match.team2.players]) idToName.set(p.id, p.name);
 
   const get = (name: string): PlayerPerformance => {
-    const key = name.trim().toLowerCase();
+    // Fold aliases (e.g. "Rishabh" / "rishabh r") into one identity.
+    const key = resolveNameKey(name);
     let perf = map.get(key);
     if (!perf) {
       perf = blank(name);

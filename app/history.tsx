@@ -3,22 +3,41 @@
  * the scorecard; long-press deletes.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { MatchFormat } from '@/types/cricket';
-import { AppText, Chip, EmptyState, Field, Screen } from '@/components/ui';
+import { AppText, Chip, EmptyState, Field, Ionicons, Screen } from '@/components/ui';
 import { Header } from '@/components/Header';
 import { MatchCard } from '@/components/MatchCard';
 import { useHistoryStore } from '@/store/historyStore';
-import { spacing } from '@/constants/theme';
+import { useAuthStore } from '@/store/authStore';
+import { syncMatchesFromCloud } from '@/utils/cloudSync';
+import { isSupabaseConfigured } from '@/lib/env';
+import { colors, spacing } from '@/constants/theme';
 
 const FORMAT_FILTERS: (MatchFormat | 'All')[] = ['All', 'T20', 'ODI', 'Box', 'Pairs', 'Custom', 'Test'];
 
 export default function HistoryScreen() {
   const router = useRouter();
   const { matches, refresh, deleteMatch } = useHistoryStore();
+  const user = useAuthStore((s) => s.user);
   const [formatFilter, setFormatFilter] = useState<MatchFormat | 'All'>('All');
   const [query, setQuery] = useState('');
+  const [syncing, setSyncing] = useState(false);
+
+  const canSync = isSupabaseConfigured && !!user;
+  const onSync = async () => {
+    if (!canSync || syncing) return;
+    setSyncing(true);
+    try {
+      await syncMatchesFromCloud();
+      await refresh();
+    } catch {
+      Alert.alert('Sync failed', 'Could not sync with the cloud. Try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -47,7 +66,24 @@ export default function HistoryScreen() {
 
   return (
     <Screen>
-      <Header title="Match History" subtitle={`${matches.length} matches`} />
+      <Header
+        title="Match History"
+        subtitle={`${matches.length} matches`}
+        right={
+          canSync ? (
+            <Pressable onPress={onSync} hitSlop={8} style={styles.syncBtn} disabled={syncing}>
+              {syncing ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="cloud-download-outline" size={20} color={colors.primary} />
+              )}
+              <AppText variant="label" color={colors.primary}>
+                {syncing ? 'Syncing' : 'Sync'}
+              </AppText>
+            </Pressable>
+          ) : undefined
+        }
+      />
       <View style={styles.filters}>
         <Field placeholder="Search team or venue…" value={query} onChangeText={setQuery} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -80,6 +116,7 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  syncBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   filters: { paddingHorizontal: spacing.lg, gap: spacing.md, marginBottom: spacing.sm },
   chips: { gap: spacing.sm, paddingVertical: spacing.xs },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },

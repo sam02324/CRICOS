@@ -5,7 +5,7 @@
  * boundary/wicket celebration overlay.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, View, StyleSheet } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui';
 import { PlayerPicker, PickerOption } from '@/components/scoring/PlayerPicker';
 import { WicketModal, WicketSubmit } from '@/components/scoring/WicketModal';
+import { WagonWheelPicker } from '@/components/scoring/WagonWheelPicker';
+import { EditOverSheet } from '@/components/scoring/EditOverSheet';
 import { Celebration } from '@/components/scoring/Celebration';
 import { useMatchStore } from '@/store/matchStore';
 import { loadLiveMatch } from '@/utils/storage';
@@ -44,6 +46,8 @@ export default function ScoringScreen() {
   const matchComplete = useMatchStore((s) => s.matchComplete);
   const celebration = useMatchStore((s) => s.celebration);
   const undoStack = useMatchStore((s) => s.undoStack);
+  const persistError = useMatchStore((s) => s.persistError);
+  const retryPersist = useMatchStore((s) => s.retryPersist);
 
   const store = useMatchStore.getState;
   const loadMatch = useMatchStore((s) => s.loadMatch);
@@ -94,6 +98,16 @@ export default function ScoringScreen() {
 
       <TopBar match={match} innings={innings} onMenu={() => openMenu(match, router)} />
 
+      {persistError ? (
+        <Pressable onPress={retryPersist} style={styles.saveWarning}>
+          <Ionicons name="warning" size={18} color={colors.black} />
+          <AppText variant="label" color={colors.black} weight={fontWeight.bold} style={{ flex: 1 }}>
+            Match not saved — storage issue. Tap to retry.
+          </AppText>
+          <Ionicons name="refresh" size={18} color={colors.black} />
+        </Pressable>
+      ) : null}
+
       {matchComplete ? (
         <MatchCompleteView match={match} onScorecard={() => router.replace(`/scorecard/${match.id}`)} />
       ) : inningsBreak ? (
@@ -108,6 +122,13 @@ export default function ScoringScreen() {
 function openMenu(match: Match, router: ReturnType<typeof useRouter>) {
   Alert.alert('Match menu', undefined, [
     { text: 'View scorecard', onPress: () => router.push(`/scorecard/${match.id}`) },
+    {
+      text: 'Share live link',
+      onPress: () =>
+        void Share.share({
+          message: `Follow my live cricket match on CRICOS! Open "Watch Live" and enter code ${match.shareCode}.`,
+        }),
+    },
     {
       text: 'End innings now',
       onPress: () =>
@@ -229,9 +250,13 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
   const scoreWicket = useMatchStore((s) => s.scoreWicket);
   const setPendingExtra = useMatchStore((s) => s.setPendingExtra);
   const swapStrike = useMatchStore((s) => s.swapStrike);
+  const setLastBallShotDirection = useMatchStore((s) => s.setLastBallShotDirection);
   const undo = useMatchStore((s) => s.undo);
+  const undoSteps = useMatchStore((s) => s.undoSteps);
 
   const [showWicket, setShowWicket] = useState(false);
+  const [wagonRuns, setWagonRuns] = useState<number | null>(null);
+  const [showEditOver, setShowEditOver] = useState(false);
   // opener setup local selection
   const [openStriker, setOpenStriker] = useState<string | null>(null);
   const [openNonStriker, setOpenNonStriker] = useState<string | null>(null);
@@ -375,8 +400,11 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
   const overBalls = displayOverBalls(innings);
 
   const onRun = (n: number) => {
+    const wasBatRun = pendingExtra == null && n > 0;
     commitRuns(n);
     feedback();
+    // Non-blocking wagon-wheel prompt for bat-runs only.
+    if (match.rules.wagonWheel && wasBatRun) setWagonRuns(n);
   };
   const onExtraTap = (extra: 'wide' | 'noBall' | 'bye' | 'legBye') => {
     setPendingExtra(extra);
@@ -522,6 +550,7 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
           <View style={styles.controlRow}>
             <ControlButton icon="arrow-undo" label={`Undo${undoDepth > 0 ? ` (${undoDepth})` : ''}`} disabled={undoDepth === 0} onPress={() => { undo(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} />
             <ControlButton icon="swap-horizontal" label="Swap" onPress={swapStrike} />
+            <ControlButton icon="create-outline" label="Edit over" disabled={overBalls.length === 0} onPress={() => setShowEditOver(true)} />
             <ControlButton icon={voiceOn ? 'volume-high' : 'volume-mute'} label="Voice" active={voiceOn} onPress={onToggleVoice} />
           </View>
         </View>
@@ -556,6 +585,29 @@ function LiveInnings({ match, innings, pendingExtra, feedback, undoDepth, voiceO
         subtitle="Same bowler can't bowl consecutive overs"
         options={eligibleBowlers}
         onSelect={(pid) => setBowler(pid)}
+      />
+
+      {/* Edit current over */}
+      <EditOverSheet
+        visible={showEditOver}
+        innings={innings}
+        undoDepth={undoDepth}
+        onClose={() => setShowEditOver(false)}
+        onUndoSteps={(steps) => {
+          undoSteps(steps);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }}
+      />
+
+      {/* Wagon-wheel shot direction (optional, non-blocking) */}
+      <WagonWheelPicker
+        visible={wagonRuns != null}
+        runs={wagonRuns ?? 0}
+        onPick={(deg) => {
+          setLastBallShotDirection(deg);
+          setWagonRuns(null);
+        }}
+        onSkip={() => setWagonRuns(null)}
       />
     </>
   );
@@ -744,4 +796,5 @@ const styles = StyleSheet.create({
   extraBtn: { flex: 1, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   controlRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   controlBtn: { flex: 1, height: 56, borderRadius: radius.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  saveWarning: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.warning, marginHorizontal: spacing.md, marginBottom: spacing.sm, padding: spacing.md, borderRadius: radius.md },
 });

@@ -25,11 +25,17 @@ async function readJSON<T>(key: string, fallback: T): Promise<T> {
   }
 }
 
+/** Raw write that throws on failure. */
+async function writeJSONOrThrow(key: string, value: unknown): Promise<void> {
+  await AsyncStorage.setItem(key, JSON.stringify(value));
+}
+
+/** Best-effort write — never throws (offline storage hiccups must not crash). */
 async function writeJSON(key: string, value: unknown): Promise<void> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
+    await writeJSONOrThrow(key, value);
   } catch {
-    // best-effort; offline storage failures should never crash scoring
+    // swallow for non-critical writes
   }
 }
 
@@ -49,6 +55,14 @@ export async function upsertMatch(match: Match): Promise<Match[]> {
   if (idx >= 0) matches[idx] = match;
   else matches.unshift(match);
   await saveMatches(matches);
+  // Mirror to the cloud for signed-in users (best-effort, no-op otherwise).
+  // Lazy import avoids a storage ⇄ cloudSync circular dependency.
+  try {
+    const { pushMatchToCloud } = await import('@/utils/cloudSync');
+    void pushMatchToCloud(match);
+  } catch {
+    // sync is optional
+  }
   return matches;
 }
 
@@ -65,7 +79,8 @@ export async function saveLiveMatch(match: Match | null): Promise<void> {
     await AsyncStorage.removeItem(KEYS.liveMatch);
     return;
   }
-  await writeJSON(KEYS.liveMatch, match);
+  // Throws on failure so the live store can warn + offer retry (see L5).
+  await writeJSONOrThrow(KEYS.liveMatch, match);
 }
 
 export async function loadLiveMatch(): Promise<Match | null> {

@@ -16,6 +16,7 @@ import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { isSupabaseConfigured } from '@/lib/env';
+import { syncMatchesFromCloud } from '@/utils/cloudSync';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -74,12 +75,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data } = await supabase.auth.getSession();
     const session = data.session ?? null;
     set({ session, user: session?.user ?? null });
-    if (session?.user) set({ profile: await loadProfile(session.user.id) });
+    if (session?.user) {
+      set({ profile: await loadProfile(session.user.id) });
+      // Merge cloud match history with local on startup (best-effort).
+      void syncMatchesFromCloud();
+    }
     set({ initializing: false });
 
-    supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    supabase.auth.onAuthStateChange(async (event, newSession) => {
       set({ session: newSession, user: newSession?.user ?? null });
       set({ profile: newSession?.user ? await loadProfile(newSession.user.id) : null });
+      // On a fresh sign-in, pull + merge the user's cloud history.
+      if (event === 'SIGNED_IN' && newSession?.user) void syncMatchesFromCloud();
     });
 
     // Catch OAuth deep-link redirects globally (covers cold-start too).

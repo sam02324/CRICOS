@@ -11,24 +11,10 @@ import { MatchCard, Crest } from '@/components/MatchCard';
 import { useHistoryStore } from '@/store/historyStore';
 import { useMatchStore } from '@/store/matchStore';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import { loadLiveMatch } from '@/utils/storage';
 import { formatOvers } from '@/utils/cricket';
 import { colors, fontWeight, radius, spacing } from '@/constants/theme';
-
-interface Action {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  route: string;
-}
-
-const ACTIONS: Action[] = [
-  { icon: 'shield-half-outline', label: 'Clubs', route: '/clubs' },
-  { icon: 'trophy-outline', label: 'Tournaments', route: '/tournaments' },
-  { icon: 'ribbon-outline', label: 'Hall of Fame', route: '/hall-of-fame' },
-  { icon: 'people-outline', label: 'Players', route: '/player/all' },
-  { icon: 'barbell-outline', label: 'Practice', route: '/practice' },
-  { icon: 'time-outline', label: 'History', route: '/history' },
-];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -36,6 +22,7 @@ export default function HomeScreen() {
   const loadMatch = useMatchStore((s) => s.loadMatch);
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
+  const openDrawer = useUIStore((s) => s.openDrawer);
   const [live, setLive] = useState<Match | null>(null);
 
   useFocusEffect(
@@ -71,9 +58,14 @@ export default function HomeScreen() {
     <Screen>
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <Pressable onPress={openDrawer} hitSlop={10} style={styles.menuBtn}>
+          <Ionicons name="menu" size={24} color={colors.text} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
           <AppText variant="overline">Welcome back</AppText>
-          <AppText variant="h1">{name}</AppText>
+          <AppText variant="h1" numberOfLines={1}>
+            {name}
+          </AppText>
         </View>
         <Pressable onPress={() => router.push('/player/all')} hitSlop={8}>
           {avatar ? (
@@ -134,22 +126,6 @@ export default function HomeScreen() {
           </View>
           <Ionicons name="chevron-forward" size={20} color="rgba(0,0,0,0.6)" />
         </Pressable>
-
-        {/* Actions grid */}
-        <View style={styles.grid}>
-          {ACTIONS.map((a) => (
-            <Pressable
-              key={a.label}
-              onPress={() => router.push(a.route as never)}
-              style={({ pressed }) => [styles.tile, pressed && { backgroundColor: colors.surface2 }]}
-            >
-              <Ionicons name={a.icon} size={22} color={colors.primary} />
-              <AppText variant="label" color={colors.text} weight={fontWeight.semibold} style={{ marginTop: spacing.sm }}>
-                {a.label}
-              </AppText>
-            </Pressable>
-          ))}
-        </View>
 
         <SectionTitle
           right={
@@ -246,16 +222,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  tile: {
-    width: '31.5%',
-    aspectRatio: 1,
+  menuBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
+    marginRight: spacing.md,
   },
 });

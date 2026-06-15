@@ -11,6 +11,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
 import { useAuthStore } from '@/store/authStore';
+import { loadRegistry } from '@/utils/playerRegistry';
+import { SideDrawer } from '@/components/SideDrawer';
 import { colors } from '@/constants/theme';
 
 function useAuthGate() {
@@ -37,6 +39,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.bg).catch(() => undefined);
+    void loadRegistry();
     void init();
   }, [init]);
 
@@ -51,28 +54,31 @@ export default function RootLayout() {
             <ActivityIndicator color={colors.primary} size="large" />
           </View>
         ) : (
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.bg },
-              animation: 'slide_from_right',
-            }}
-          >
-            <Stack.Screen name="login" options={{ animation: 'fade' }} />
-            <Stack.Screen name="auth/callback" options={{ animation: 'fade' }} />
-            <Stack.Screen name="index" />
-            <Stack.Screen name="new-match" />
-            <Stack.Screen name="scoring/[id]" options={{ gestureEnabled: false }} />
-            <Stack.Screen name="scorecard/[id]" />
-            <Stack.Screen name="history" />
-            <Stack.Screen name="practice" />
-            <Stack.Screen name="player/[id]" />
-            <Stack.Screen name="clubs" />
-            <Stack.Screen name="club/[id]" />
-            <Stack.Screen name="tournaments" />
-            <Stack.Screen name="tournament/[id]" />
-            <Stack.Screen name="hall-of-fame" />
-          </Stack>
+          <>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.bg },
+                animation: 'slide_from_right',
+              }}
+            >
+              <Stack.Screen name="login" options={{ animation: 'fade' }} />
+              <Stack.Screen name="auth/callback" options={{ animation: 'fade' }} />
+              <Stack.Screen name="index" />
+              <Stack.Screen name="new-match" />
+              <Stack.Screen name="scoring/[id]" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="scorecard/[id]" />
+              <Stack.Screen name="history" />
+              <Stack.Screen name="practice" />
+              <Stack.Screen name="player/[id]" />
+              <Stack.Screen name="clubs" />
+              <Stack.Screen name="club/[id]" />
+              <Stack.Screen name="tournaments" />
+              <Stack.Screen name="tournament/[id]" />
+              <Stack.Screen name="hall-of-fame" />
+            </Stack>
+            <SideDrawer />
+          </>
         )}
       </SafeAreaProvider>
     </GestureHandlerRootView>

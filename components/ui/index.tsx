@@ -194,17 +194,19 @@ interface ChipProps {
   label: string;
   selected?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
   emoji?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   style?: StyleProp<ViewStyle>;
   accent?: string;
 }
 
-export function Chip({ label, selected, onPress, emoji, icon, style, accent = colors.primary }: ChipProps) {
+export function Chip({ label, selected, onPress, onLongPress, emoji, icon, style, accent = colors.primary }: ChipProps) {
   const fg = selected ? colors.black : colors.text;
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }) => [
         styles.chip,
         {

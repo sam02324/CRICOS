@@ -9,12 +9,17 @@ import { Match } from '@/types/cricket';
 import { AppText, Button, Card, Ionicons, Screen } from '@/components/ui';
 import { Header } from '@/components/Header';
 import { InningsTable } from '@/components/scorecard/InningsTable';
+import { MatchCharts } from '@/components/scorecard/MatchCharts';
+import { WagonWheelView } from '@/components/scorecard/WagonWheelView';
 import { ShareCard } from '@/components/scorecard/ShareCard';
 import { useMatchStore } from '@/store/matchStore';
 import { useHistoryStore } from '@/store/historyStore';
 import { loadLiveMatch, loadMatches } from '@/utils/storage';
 import { buildShareText, shareMatchImage } from '@/utils/share';
 import { computeMatchMVP } from '@/utils/mvp';
+import { generateMatchReport } from '@/utils/report';
+import { upsertMatch } from '@/utils/storage';
+import { isAiReportConfigured } from '@/lib/env';
 import { colors, fontWeight, radius, spacing } from '@/constants/theme';
 
 export default function ScorecardScreen() {
@@ -51,6 +56,21 @@ export default function ScorecardScreen() {
 
   const text = useMemo(() => (match ? buildShareText(match) : ''), [match]);
   const mvp = useMemo(() => (match && match.status === 'completed' ? computeMatchMVP(match) : null), [match]);
+
+  // Generate an AI match report once, for completed matches, if configured.
+  useEffect(() => {
+    if (!match || match.status !== 'completed' || match.report || !isAiReportConfigured) return;
+    let cancelled = false;
+    void generateMatchReport(match).then((report) => {
+      if (cancelled || !report) return;
+      const withReport = { ...match, report };
+      setMatch(withReport);
+      void upsertMatch(withReport);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [match]);
 
   if (!match) {
     return (
@@ -97,6 +117,17 @@ export default function ScorecardScreen() {
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {match.report ? (
+          <Card style={styles.reportCard}>
+            <AppText variant="overline" color={colors.primary}>
+              ✨ Match Report
+            </AppText>
+            <AppText variant="body" style={{ marginTop: spacing.sm, lineHeight: 22 }}>
+              {match.report}
+            </AppText>
+          </Card>
+        ) : null}
+
         {match.result ? (
           <Card variant="surface" style={styles.resultBanner}>
             <View style={styles.resultMark}>
@@ -148,6 +179,10 @@ export default function ScorecardScreen() {
           <InningsTable key={i} innings={inn} />
         ))}
 
+        <MatchCharts match={match} />
+
+        {match.rules.wagonWheel ? <WagonWheelView match={match} /> : null}
+
         <Button title="Save rule-set as template" icon="bookmark-outline" variant="ghost" onPress={onSaveTemplate} />
         <View style={styles.bottomRow}>
           <Button title="Home" icon="home" variant="secondary" onPress={() => router.replace('/')} style={{ flex: 1 }} />
@@ -175,4 +210,5 @@ const styles = StyleSheet.create({
   mvpStar: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   shareRow: { flexDirection: 'row', gap: spacing.md },
   bottomRow: { flexDirection: 'row', gap: spacing.md },
+  reportCard: { borderWidth: 1, borderColor: colors.primary },
 });

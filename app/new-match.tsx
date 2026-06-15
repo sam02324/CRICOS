@@ -43,7 +43,7 @@ export default function NewMatchScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tournamentId?: string }>();
   const startMatch = useMatchStore((s) => s.startMatch);
-  const { templates, addTemplate } = useHistoryStore();
+  const { templates, addTemplate, deleteTemplate } = useHistoryStore();
   const { clubs, getClub, refresh: refreshClubs } = useClubStore();
   const { getTournament, refresh: refreshTours } = useTournamentStore();
 
@@ -218,7 +218,7 @@ export default function NewMatchScreen() {
 
         {templates.length > 0 ? (
           <View>
-            <SectionTitle>Templates</SectionTitle>
+            <SectionTitle>Load template</SectionTitle>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
               {templates.map((t) => (
                 <Chip
@@ -232,9 +232,18 @@ export default function NewMatchScreen() {
                     setRules(t.rules);
                     setBallType(t.rules.ballType);
                   }}
+                  onLongPress={() =>
+                    Alert.alert('Delete template?', t.name, [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: () => void deleteTemplate(t.id) },
+                    ])
+                  }
                 />
               ))}
             </ScrollView>
+            <AppText variant="caption" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
+              Tap to load · long-press to delete
+            </AppText>
           </View>
         ) : null}
 
